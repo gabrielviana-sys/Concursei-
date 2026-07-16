@@ -1,5 +1,7 @@
 'use client'
 
+import { AppProvider } from '@/components/AppContext'
+
 export function Providers({ children }) {
-  return children
+  return <AppProvider>{children}</AppProvider>
 }
