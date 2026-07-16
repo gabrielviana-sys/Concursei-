@@ -11,7 +11,7 @@ const POMODORO_SHORT_BREAK = 5 * 60
 const POMODORO_LONG_BREAK = 15 * 60
 
 export default function TimerPage() {
-  const { subjects, addSession, sessions, deleteSession, loading } = useApp()
+  const { subjects, addSession, sessions, deleteSession, loading, error } = useApp()
   const [mode, setMode] = useState('timer')
   const [seconds, setSeconds] = useState(0)
   const [targetSeconds, setTargetSeconds] = useState(0)
@@ -121,8 +121,9 @@ export default function TimerPage() {
   if (loading) {
     return (
       <Layout>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px' }}>
           <p style={{ color: 'var(--text-secondary)' }}>Carregando...</p>
+          {error && <p style={{ color: 'var(--danger)', fontSize: '14px' }}>{error}</p>}
         </div>
       </Layout>
     )
