@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useApp } from '@/components/AppContext'
 import Layout from '@/components/Layout'
 import { formatSeconds } from '@/lib/time'
@@ -20,31 +20,70 @@ export default function TimerPage() {
   const [sessionType, setSessionType] = useState('timer')
   const intervalRef = useRef(null)
 
-  useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        setSeconds((prev) => {
-          if (mode === 'pomodoro' && prev >= 1) {
-            return prev - 1
-          }
-          return prev + 1
-        })
-      }, 1000)
-    } else {
-      clearInterval(intervalRef.current)
-    }
-    return () => clearInterval(intervalRef.current)
-  }, [isRunning, mode])
+  const secondsRef = useRef(seconds)
+  const modeRef = useRef(mode)
+  const sessionTypeRef = useRef(sessionType)
+  const subjectIdRef = useRef(subjectId)
+  const addSessionRef = useRef(addSession)
 
   useEffect(() => {
-    if (mode === 'pomodoro' && seconds === 0 && isRunning && targetSeconds > 0) {
-      clearInterval(intervalRef.current)
-      setIsRunning(false)
-      if (sessionType === 'timer') {
-        finishSession()
-      }
+    secondsRef.current = seconds
+  }, [seconds])
+
+  useEffect(() => {
+    modeRef.current = mode
+  }, [mode])
+
+  useEffect(() => {
+    sessionTypeRef.current = sessionType
+  }, [sessionType])
+
+  useEffect(() => {
+    subjectIdRef.current = subjectId
+  }, [subjectId])
+
+  useEffect(() => {
+    addSessionRef.current = addSession
+  }, [addSession])
+
+  const finishSession = useCallback(async (finalSeconds) => {
+    const minutes = Math.ceil((finalSeconds ?? secondsRef.current) / 60)
+    if (minutes > 0 && subjectIdRef.current) {
+      await addSessionRef.current({
+        subjectId: subjectIdRef.current,
+        minutes,
+        sessionType: sessionTypeRef.current,
+        date: new Date().toISOString(),
+      })
     }
-  }, [seconds, isRunning, mode, targetSeconds, sessionType])
+    setIsRunning(false)
+    setSeconds(0)
+    setTargetSeconds(0)
+    setMode('timer')
+    setSessionType('timer')
+  }, [])
+
+  useEffect(() => {
+    if (!isRunning) {
+      clearInterval(intervalRef.current)
+      return
+    }
+
+    intervalRef.current = setInterval(() => {
+      if (modeRef.current === 'pomodoro') {
+        if (secondsRef.current <= 1) {
+          clearInterval(intervalRef.current)
+          finishSession(0)
+          return
+        }
+        setSeconds((prev) => prev - 1)
+      } else {
+        setSeconds((prev) => prev + 1)
+      }
+    }, 1000)
+
+    return () => clearInterval(intervalRef.current)
+  }, [isRunning, finishSession])
 
   const startPomodoro = (duration, type) => {
     setMode('pomodoro')
@@ -72,19 +111,6 @@ export default function TimerPage() {
     setTargetSeconds(0)
     setMode('timer')
     setSessionType('timer')
-  }
-
-  const finishSession = async () => {
-    const minutes = Math.ceil(seconds / 60)
-    if (minutes > 0 && subjectId) {
-      await addSession({
-        subjectId,
-        minutes,
-        sessionType,
-        date: new Date().toISOString(),
-      })
-    }
-    reset()
   }
 
   const getSubjectName = (id) => {
@@ -250,7 +276,7 @@ export default function TimerPage() {
                 <RotateCcw size={24} />
               </button>
               <button
-                onClick={finishSession}
+                onClick={() => finishSession()}
                 disabled={!subjectId || seconds === 0}
                 style={{
                   height: '64px',

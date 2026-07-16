@@ -1,14 +1,11 @@
-import { getSessionUser, unauthorized } from '@/lib/session'
+import { DEFAULT_USER_ID } from '@/lib/user'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
 export async function GET(req, { params }) {
-  const user = await getSessionUser(req)
-  if (!user?.id) return unauthorized()
-
   const { id } = await params
   const topic = await prisma.topic.findFirst({
-    where: { id, userId: user.id },
+    where: { id, userId: DEFAULT_USER_ID },
     include: { subject: { select: { name: true, color: true } }, attachments: true },
   })
 
@@ -17,14 +14,11 @@ export async function GET(req, { params }) {
 }
 
 export async function PUT(req, { params }) {
-  const user = await getSessionUser(req)
-  if (!user?.id) return unauthorized()
-
   const { id } = await params
   const body = await req.json()
 
   const topic = await prisma.topic.updateMany({
-    where: { id, userId: user.id },
+    where: { id, userId: DEFAULT_USER_ID },
     data: body,
   })
 
@@ -33,10 +27,7 @@ export async function PUT(req, { params }) {
 }
 
 export async function DELETE(req, { params }) {
-  const user = await getSessionUser(req)
-  if (!user?.id) return unauthorized()
-
   const { id } = await params
-  await prisma.topic.deleteMany({ where: { id, userId: user.id } })
+  await prisma.topic.deleteMany({ where: { id, userId: DEFAULT_USER_ID } })
   return NextResponse.json({ ok: true })
 }

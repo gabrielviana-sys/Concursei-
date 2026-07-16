@@ -334,7 +334,7 @@ export default function SubjectsPage() {
             }}
           >
             <p>Nenhuma matéria cadastrada ainda.</p>
-            <p style={{ marginTop: '8px' }}>Clique em "Nova matéria" para começar.</p>
+            <p style={{ marginTop: '8px' }}>Clique em &ldquo;Nova matéria&rdquo; para começar.</p>
           </div>
         )}
       </div>

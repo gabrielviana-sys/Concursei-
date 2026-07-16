@@ -1,18 +1,13 @@
-import { getSessionUser, unauthorized } from '@/lib/session'
+import { DEFAULT_USER_ID } from '@/lib/user'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
-export async function GET(req) {
-  const user = await getSessionUser(req)
-  if (!user?.id) return unauthorized()
-
-  const userId = user.id
-
+export async function GET() {
   const [subjects, sessions, questions, topics] = await Promise.all([
-    prisma.subject.findMany({ where: { userId } }),
-    prisma.studySession.findMany({ where: { userId } }),
-    prisma.question.findMany({ where: { userId } }),
-    prisma.topic.findMany({ where: { userId } }),
+    prisma.subject.findMany({ where: { userId: DEFAULT_USER_ID } }),
+    prisma.studySession.findMany({ where: { userId: DEFAULT_USER_ID } }),
+    prisma.question.findMany({ where: { userId: DEFAULT_USER_ID } }),
+    prisma.topic.findMany({ where: { userId: DEFAULT_USER_ID } }),
   ])
 
   const totalMinutes = sessions.reduce((acc, s) => acc + s.minutes, 0)

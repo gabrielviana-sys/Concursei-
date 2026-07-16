@@ -2,7 +2,15 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 
-const AppContext = createContext({ loading: true })
+const AppContext = createContext({
+  subjects: [],
+  sessions: [],
+  questions: [],
+  topics: [],
+  stats: null,
+  loading: true,
+  error: null,
+})
 
 async function fetcher(url, options = {}) {
   const res = await fetch(url, {
@@ -23,6 +31,7 @@ export function AppProvider({ children }) {
   const [topics, setTopics] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   const loadSubjects = useCallback(async () => {
     const data = await fetcher('/api/subjects')
@@ -51,11 +60,19 @@ export function AppProvider({ children }) {
 
   const refreshAll = useCallback(async () => {
     setLoading(true)
-    await Promise.all([loadSubjects(), loadSessions(), loadQuestions(), loadTopics(), loadStats()])
-    setLoading(false)
+    setError(null)
+    try {
+      await Promise.all([loadSubjects(), loadSessions(), loadQuestions(), loadTopics(), loadStats()])
+    } catch (err) {
+      setError(err.message || 'Erro ao carregar dados')
+    } finally {
+      setLoading(false)
+    }
   }, [loadSubjects, loadSessions, loadQuestions, loadTopics, loadStats])
 
   useEffect(() => {
+    // Carrega os dados iniciais ao montar o provider.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshAll()
   }, [refreshAll])
 
@@ -161,6 +178,7 @@ export function AppProvider({ children }) {
     topics,
     stats,
     loading,
+    error,
     refreshAll,
     addSubject,
     updateSubject,

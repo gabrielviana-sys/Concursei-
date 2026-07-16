@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOut } from 'next-auth/react'
 import {
   LayoutDashboard,
   BookOpen,
@@ -11,7 +10,6 @@ import {
   Calendar,
   GraduationCap,
   Settings,
-  LogOut,
 } from 'lucide-react'
 
 const menuItems = [
@@ -90,24 +88,6 @@ export default function Sidebar() {
           )
         })}
       </nav>
-
-      <button
-        onClick={() => signOut({ callbackUrl: '/login' })}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          padding: '12px 16px',
-          borderRadius: '10px',
-          color: 'var(--text-secondary)',
-          backgroundColor: 'transparent',
-          fontWeight: 500,
-          marginTop: 'auto',
-        }}
-      >
-        <LogOut size={20} />
-        <span>Sair</span>
-      </button>
     </aside>
   )
 }

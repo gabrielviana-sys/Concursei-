@@ -1,4 +1,4 @@
-import { getSessionUser, unauthorized } from '@/lib/session'
+import { DEFAULT_USER_ID } from '@/lib/user'
 import { prisma } from '@/lib/db'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { NextResponse } from 'next/server'
@@ -14,16 +14,13 @@ const MODELS = [
 ]
 
 export async function POST(req) {
-  const user = await getSessionUser(req)
-  if (!user?.id) return unauthorized()
-
   try {
     const { text, attachmentId } = await req.json()
     let content = text || ''
 
     if (attachmentId) {
       const attachment = await prisma.topicAttachment.findFirst({
-        where: { id: attachmentId, userId: user.id },
+        where: { id: attachmentId, userId: DEFAULT_USER_ID },
       })
       if (!attachment) return NextResponse.json({ error: 'Anexo não encontrado' }, { status: 404 })
       content = attachment.content || ''
@@ -34,7 +31,7 @@ export async function POST(req) {
     }
 
     const settings = await prisma.setting.findMany({
-      where: { userId: user.id },
+      where: { userId: DEFAULT_USER_ID },
     })
     const apiKey = settings.find((s) => s.key === 'geminiApiKey')?.value || process.env.GEMINI_API_KEY
 

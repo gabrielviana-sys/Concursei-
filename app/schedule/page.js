@@ -36,6 +36,7 @@ function isSameDay(a, b) {
 
 export default function SchedulePage() {
   const { subjects, topics, toggleTopicCompleted, loading } = useApp()
+  const safeTopics = useMemo(() => (Array.isArray(topics) ? topics : []), [topics])
   const [view, setView] = useState('month')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(null)
@@ -44,19 +45,9 @@ export default function SchedulePage() {
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
 
-  if (loading || !Array.isArray(topics)) {
-    return (
-      <Layout>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-          <p style={{ color: 'var(--text-secondary)' }}>Carregando cronograma...</p>
-        </div>
-      </Layout>
-    )
-  }
-
   const topicsByDate = useMemo(() => {
     const map = new Map()
-    for (const topic of topics) {
+    for (const topic of safeTopics) {
       if (!topic.studyDate) continue
       const key = toDateKey(topic.studyDate)
       if (!map.has(key)) map.set(key, [])
@@ -64,7 +55,7 @@ export default function SchedulePage() {
     }
     for (const list of map.values()) list.sort((a, b) => a.name.localeCompare(b.name))
     return map
-  }, [topics])
+  }, [safeTopics])
 
   const allScheduleDates = useMemo(() => {
     const keys = Array.from(topicsByDate.keys()).sort()
@@ -73,6 +64,16 @@ export default function SchedulePage() {
 
   const calendarDays = useMemo(() => getCalendarDays(year, month), [year, month])
   const today = new Date()
+
+  if (loading || !Array.isArray(safeTopics)) {
+    return (
+      <Layout>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+          <p style={{ color: 'var(--text-secondary)' }}>Carregando cronograma...</p>
+        </div>
+      </Layout>
+    )
+  }
 
   const goToToday = () => {
     const now = new Date()
@@ -158,7 +159,7 @@ export default function SchedulePage() {
     if (!date) {
       return (
         <div
-          key={`empty-${Math.random()}`}
+          key="empty"
           style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '10px', opacity: 0.4, minHeight: '120px' }}
         />
       )
@@ -230,7 +231,7 @@ export default function SchedulePage() {
   const selectedDayKey = selectedDate ? toDateKey(selectedDate) : null
   const selectedDayTopics = selectedDayKey ? topicsByDate.get(selectedDayKey) || [] : []
 
-  if (loading || !topics) {
+  if (loading || !safeTopics) {
     return (
       <Layout>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -504,7 +505,7 @@ export default function SchedulePage() {
             )
           })}
 
-        {topics.length === 0 && (
+        {safeTopics.length === 0 && (
           <div
             style={{
               textAlign: 'center',

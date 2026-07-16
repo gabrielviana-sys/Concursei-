@@ -350,7 +350,7 @@ export default function QuestionsPage() {
               }}
             >
               <p>Nenhuma questão registrada ainda.</p>
-              <p style={{ marginTop: '8px' }}>Clique em "Registrar questões" para começar.</p>
+              <p style={{ marginTop: '8px' }}>Clique em &ldquo;Registrar questões&rdquo; para começar.</p>
             </div>
           )}
         </div>

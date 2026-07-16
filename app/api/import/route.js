@@ -1,12 +1,9 @@
-import { getSessionUser, unauthorized } from '@/lib/session'
+import { DEFAULT_USER_ID } from '@/lib/user'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 
 export async function POST(req) {
-  const user = await getSessionUser(req)
-  if (!user?.id) return unauthorized()
-
   try {
     const formData = await req.formData()
     const file = formData.get('file')
@@ -19,13 +16,12 @@ export async function POST(req) {
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     const rows = XLSX.utils.sheet_to_json(sheet)
 
-    const userId = user.id
     const created = []
 
     if (type === 'questions') {
       for (const row of rows) {
         const data = {
-          userId,
+          userId: DEFAULT_USER_ID,
           subjectId: row.subjectId || null,
           topic: row.tema || row.topic || row.assunto || null,
           total: Number(row.total || row.questoes || 0),
@@ -38,7 +34,7 @@ export async function POST(req) {
     } else if (type === 'sessions') {
       for (const row of rows) {
         const data = {
-          userId,
+          userId: DEFAULT_USER_ID,
           subjectId: row.subjectId || null,
           minutes: Number(row.minutes || row.minutos || 0),
           sessionType: row.sessionType || row.tipo || 'timer',
