@@ -1,4 +1,4 @@
-import { DEFAULT_USER_ID } from '@/lib/user'
+import { DEFAULT_USER_ID, getDefaultUser } from '@/lib/user'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
@@ -13,6 +13,7 @@ export async function GET() {
 }
 
 export async function POST(req) {
+  await getDefaultUser(prisma)
   const body = await req.json()
   const subject = await prisma.subject.create({
     data: { ...body, userId: DEFAULT_USER_ID },

@@ -1,4 +1,4 @@
-import { DEFAULT_USER_ID } from '@/lib/user'
+import { DEFAULT_USER_ID, getDefaultUser } from '@/lib/user'
 import { prisma } from '@/lib/db'
 import { parseScheduleText } from '@/lib/scheduleTextParser'
 import { NextResponse } from 'next/server'
@@ -17,6 +17,8 @@ export async function POST(req) {
     if (!file) {
       return NextResponse.json({ error: 'Arquivo não enviado' }, { status: 400 })
     }
+
+    await getDefaultUser(prisma)
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const parser = new PDFParse({ data: buffer })

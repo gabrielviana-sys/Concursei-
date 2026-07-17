@@ -1,4 +1,4 @@
-import { DEFAULT_USER_ID } from '@/lib/user'
+import { DEFAULT_USER_ID, getDefaultUser } from '@/lib/user'
 import { prisma } from '@/lib/db'
 import { parseExcelSchedule } from '@/lib/scheduleExcelParser'
 import { NextResponse } from 'next/server'
@@ -16,6 +16,8 @@ export async function POST(req) {
     if (!month || !year) {
       return NextResponse.json({ error: 'Mês e ano são obrigatórios' }, { status: 400 })
     }
+
+    await getDefaultUser(prisma)
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const { items } = parseExcelSchedule(buffer, { month, year })
