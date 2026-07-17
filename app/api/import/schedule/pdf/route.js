@@ -46,45 +46,59 @@ export async function POST(req) {
         where: { userId: DEFAULT_USER_ID },
       })
       const subjectMap = new Map(existingSubjects.map((s) => [s.name.toLowerCase(), s.id]))
-      const createdSubjectNames = new Set()
-      let createdTopics = 0
+      const missingSubjectNames = []
 
       for (const item of items) {
         const key = item.subjectName.toLowerCase()
-        let subjectId = subjectMap.get(key)
-
-        if (!subjectId) {
-          const newSubject = await tx.subject.create({
-            data: {
-              userId: DEFAULT_USER_ID,
-              name: item.subjectName,
-              color: '#6366f1',
-              goalMinutes: 60,
-            },
-          })
-          subjectId = newSubject.id
-          subjectMap.set(key, subjectId)
-          createdSubjectNames.add(item.subjectName)
+        if (!subjectMap.has(key) && !missingSubjectNames.includes(item.subjectName)) {
+          missingSubjectNames.push(item.subjectName)
         }
+      }
 
-        await tx.topic.create({
-          data: {
+      if (missingSubjectNames.length > 0) {
+        await tx.subject.createMany({
+          data: missingSubjectNames.map((name) => ({
             userId: DEFAULT_USER_ID,
-            subjectId,
-            name: item.content,
-            studyDate: item.studyDate ? new Date(`${item.studyDate}T12:00:00`) : null,
-            completed: item.completed,
-            source: 'gran-cursos',
-          },
+            name,
+            color: '#6366f1',
+            goalMinutes: 60,
+          })),
+          skipDuplicates: true,
         })
-        createdTopics++
+      }
+
+      const allSubjects = await tx.subject.findMany({
+        where: { userId: DEFAULT_USER_ID },
+      })
+      const allSubjectMap = new Map(allSubjects.map((s) => [s.name.toLowerCase(), s.id]))
+      const createdSubjectNames = new Set(missingSubjectNames)
+
+      const topicsToCreate = []
+      for (const item of items) {
+        const subjectId = allSubjectMap.get(item.subjectName.toLowerCase())
+        if (!subjectId) continue
+        topicsToCreate.push({
+          userId: DEFAULT_USER_ID,
+          subjectId,
+          name: item.content,
+          studyDate: item.studyDate ? new Date(`${item.studyDate}T12:00:00`) : null,
+          completed: item.completed,
+          source: 'gran-cursos',
+        })
+      }
+
+      if (topicsToCreate.length > 0) {
+        await tx.topic.createMany({
+          data: topicsToCreate,
+          skipDuplicates: false,
+        })
       }
 
       return {
         totalPages: textResult.total,
         totalItems: items.length,
         createdSubjects: createdSubjectNames.size,
-        createdTopics,
+        createdTopics: topicsToCreate.length,
       }
     }, { maxWait: 10000, timeout: 60000 })
 
