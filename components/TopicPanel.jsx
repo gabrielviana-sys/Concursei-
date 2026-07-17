@@ -15,6 +15,7 @@ export default function TopicPanel({ topic, subject, onClose }) {
   const [savingNote, setSavingNote] = useState(false)
   const [summarizingId, setSummarizingId] = useState(null)
   const [uploadingPdf, setUploadingPdf] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const pdfInputRef = useRef(null)
 
   useEffect(() => {
@@ -78,9 +79,11 @@ export default function TopicPanel({ topic, subject, onClose }) {
     setAttachments((prev) => [...prev, created])
   }
 
-  const handleUploadPdf = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const uploadPdfFile = async (file) => {
+    if (!file || file.type !== 'application/pdf') {
+      alert('Por favor, envie um arquivo PDF.')
+      return
+    }
     setUploadingPdf(true)
     try {
       const formData = new FormData()
@@ -96,6 +99,28 @@ export default function TopicPanel({ topic, subject, onClose }) {
       setUploadingPdf(false)
       if (pdfInputRef.current) pdfInputRef.current.value = ''
     }
+  }
+
+  const handleUploadPdf = (e) => {
+    const file = e.target.files?.[0]
+    if (file) uploadPdfFile(file)
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) uploadPdfFile(file)
   }
 
   return (
@@ -227,7 +252,23 @@ export default function TopicPanel({ topic, subject, onClose }) {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  padding: attachments.filter((a) => a.type !== 'note').length === 0 ? '40px 20px' : '14px',
+                  backgroundColor: isDragging ? 'rgba(99, 102, 241, 0.12)' : 'var(--bg-primary)',
+                  border: isDragging ? '2px dashed var(--accent)' : '1px solid var(--border)',
+                  borderRadius: '10px',
+                  transition: 'all 0.2s',
+                  minHeight: '120px',
+                  justifyContent: attachments.filter((a) => a.type !== 'note').length === 0 ? 'center' : 'flex-start',
+                }}
+              >
                 {attachments
                   .filter((a) => a.type !== 'note')
                   .map((attachment) => (
@@ -235,7 +276,7 @@ export default function TopicPanel({ topic, subject, onClose }) {
                       key={attachment.id}
                       style={{
                         padding: '14px',
-                        backgroundColor: 'var(--bg-primary)',
+                        backgroundColor: 'var(--bg-secondary)',
                         border: '1px solid var(--border)',
                         borderRadius: '8px',
                         display: 'flex',
@@ -314,7 +355,11 @@ export default function TopicPanel({ topic, subject, onClose }) {
                     </div>
                   ))}
                 {attachments.filter((a) => a.type !== 'note').length === 0 && (
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Nenhum documento ou resumo ainda.</p>
+                  <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    <Upload size={32} style={{ marginBottom: '10px', opacity: 0.5 }} />
+                    <p style={{ fontSize: '14px' }}>{isDragging ? 'Solte o PDF aqui' : 'Arraste o PDF da aula aqui'}</p>
+                    <p style={{ fontSize: '12px', marginTop: '4px' }}>ou clique em Adicionar PDF</p>
+                  </div>
                 )}
               </div>
             </div>
