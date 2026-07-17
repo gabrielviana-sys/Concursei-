@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from './AppContext'
-import { X, FileText, Sparkles, Trash2, Save, Loader2 } from 'lucide-react'
+import { X, FileText, Sparkles, Trash2, Save, Loader2, Upload } from 'lucide-react'
 
 export default function TopicPanel({ topic, subject, onClose }) {
   const router = useRouter()
@@ -14,6 +14,8 @@ export default function TopicPanel({ topic, subject, onClose }) {
   const [noteId, setNoteId] = useState(null)
   const [savingNote, setSavingNote] = useState(false)
   const [summarizingId, setSummarizingId] = useState(null)
+  const [uploadingPdf, setUploadingPdf] = useState(false)
+  const pdfInputRef = useRef(null)
 
   useEffect(() => {
     const load = async () => {
@@ -74,6 +76,26 @@ export default function TopicPanel({ topic, subject, onClose }) {
       content: text,
     })
     setAttachments((prev) => [...prev, created])
+  }
+
+  const handleUploadPdf = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingPdf(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('topicId', topic.id)
+      const res = await fetch('/api/attachments/pdf', { method: 'POST', body: formData })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Erro ao enviar PDF')
+      setAttachments((prev) => [...prev, result])
+    } catch (err) {
+      alert(err.message || 'Erro ao enviar PDF')
+    } finally {
+      setUploadingPdf(false)
+      if (pdfInputRef.current) pdfInputRef.current.value = ''
+    }
   }
 
   return (
@@ -158,23 +180,51 @@ export default function TopicPanel({ topic, subject, onClose }) {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <h4 style={{ fontSize: '15px', fontWeight: 600 }}>Documentos e resumos</h4>
-                <button
-                  onClick={handleAddTextAttachment}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    backgroundColor: 'var(--bg-tertiary)',
-                    color: 'var(--text-primary)',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                  }}
-                >
-                  <FileText size={14} />
-                  Adicionar texto
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    ref={pdfInputRef}
+                    type="file"
+                    accept=".pdf"
+                    style={{ display: 'none' }}
+                    onChange={handleUploadPdf}
+                  />
+                  <button
+                    onClick={() => pdfInputRef.current?.click()}
+                    disabled={uploadingPdf}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 14px',
+                      backgroundColor: 'var(--accent)',
+                      color: '#fff',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      opacity: uploadingPdf ? 0.7 : 1,
+                    }}
+                  >
+                    <Upload size={14} />
+                    {uploadingPdf ? 'Enviando...' : 'Adicionar PDF'}
+                  </button>
+                  <button
+                    onClick={handleAddTextAttachment}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 14px',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      color: 'var(--text-primary)',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <FileText size={14} />
+                    Adicionar texto
+                  </button>
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -197,23 +247,43 @@ export default function TopicPanel({ topic, subject, onClose }) {
                       <div style={{ flex: 1 }}>
                         <p style={{ fontWeight: 600, fontSize: '14px' }}>{attachment.title}</p>
                         <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                          {attachment.type === 'summary' ? 'Resumo gerado por IA' : 'Texto do documento'}
+                          {attachment.type === 'summary' ? 'Resumo gerado por IA' : attachment.fileUrl ? 'PDF anexado' : 'Texto do documento'}
                         </p>
                       </div>
                       {attachment.type === 'pdf' && (
-                        <button
-                          onClick={() => handleSummarize(attachment)}
-                          disabled={summarizingId === attachment.id}
-                          style={{
-                            padding: '8px',
-                            backgroundColor: 'var(--bg-tertiary)',
-                            borderRadius: '8px',
-                            color: 'var(--accent)',
-                          }}
-                          title="Gerar resumo com IA"
-                        >
-                          {summarizingId === attachment.id ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
-                        </button>
+                        <>
+                          {attachment.fileUrl && (
+                            <a
+                              href={attachment.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                padding: '8px 14px',
+                                backgroundColor: 'var(--bg-tertiary)',
+                                borderRadius: '8px',
+                                color: 'var(--text-primary)',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                textDecoration: 'none',
+                              }}
+                            >
+                              Abrir PDF
+                            </a>
+                          )}
+                          <button
+                            onClick={() => handleSummarize(attachment)}
+                            disabled={summarizingId === attachment.id || !attachment.content}
+                            style={{
+                              padding: '8px',
+                              backgroundColor: 'var(--bg-tertiary)',
+                              borderRadius: '8px',
+                              color: !attachment.content ? 'var(--text-secondary)' : 'var(--accent)',
+                            }}
+                            title={attachment.content ? 'Gerar resumo com IA' : 'PDF sem texto selecionável'}
+                          >
+                            {summarizingId === attachment.id ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
+                          </button>
+                        </>
                       )}
                       {attachment.type === 'summary' && (
                         <button
