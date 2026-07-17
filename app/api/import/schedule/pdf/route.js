@@ -86,7 +86,7 @@ export async function POST(req) {
         createdSubjects: createdSubjectNames.size,
         createdTopics,
       }
-    })
+    }, { maxWait: 10000, timeout: 60000 })
 
     return NextResponse.json(result)
   } catch (error) {
