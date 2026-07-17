@@ -13,12 +13,10 @@ const AppContext = createContext({
 })
 
 async function fetcher(url, options = {}) {
-  console.log('[fetcher]', url)
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
   })
-  console.log('[fetcher response]', url, res.status)
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.error || 'Erro na requisição')
@@ -61,7 +59,6 @@ export function AppProvider({ children }) {
   }, [])
 
   const refreshAll = useCallback(async () => {
-    console.log('[refreshAll] start')
     setLoading(true)
     setError(null)
     try {
@@ -69,9 +66,7 @@ export function AppProvider({ children }) {
         Promise.all([loadSubjects(), loadSessions(), loadQuestions(), loadTopics(), loadStats()]),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout ao carregar dados')), 10000)),
       ])
-      console.log('[refreshAll] done')
     } catch (err) {
-      console.error('[refreshAll] error', err)
       setError(err.message || 'Erro ao carregar dados')
     } finally {
       setLoading(false)
@@ -170,6 +165,24 @@ export function AppProvider({ children }) {
     return fetcher('/api/summarize', { method: 'POST', body: JSON.stringify({ attachmentId }) })
   }
 
+  const importScheduleExcel = async (formData) => {
+    const res = await fetch('/api/import/schedule/excel', {
+      method: 'POST',
+      body: formData,
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || 'Erro na importação')
+    }
+    await refreshAll()
+    return res.json()
+  }
+
+  const clearSchedule = async () => {
+    await fetcher('/api/import/schedule/clear', { method: 'DELETE' })
+    await refreshAll()
+  }
+
   const getSetting = async (key) => {
     const settings = await fetcher('/api/settings')
     return settings[key]
@@ -206,6 +219,8 @@ export function AppProvider({ children }) {
     updateTopicAttachment,
     deleteTopicAttachment,
     summarizeAttachment,
+    importScheduleExcel,
+    clearSchedule,
     getSetting,
     setSetting,
   }
